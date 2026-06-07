@@ -59,7 +59,7 @@ Solving this PDE with the boundary condition $V(S,T) = max(S−K, 0)$ gives the 
 
 Now I tested the formula with some standard parameters. Throughout this book, I've taken pounds as currency (for no particular reason though).
 
-**Results at S=K=100, T=1y, r=5%, σ=20%:**
+**Results**: At S=K=100, T=1y, r=5%, σ=20%:
 
 | | Call | Put |
 |---|---|---|
@@ -82,7 +82,6 @@ Note: This shows that option pricing is nonlinear.
 ### 2. The Greeks
 
 We know that the Greeks measure how the option price changes with each input. I wanted to understand the roles of differentparameters clearly. So I have the following table:
-
 
 **At S=K=100, T=1y, r=5%, σ=20%:**
 
@@ -114,7 +113,7 @@ $$S_T = S_0 · exp[(r − σ²/2)T + σ√T·Z],   Z ~ N(0,1)$$
 
 I use antithetic variates for variance reduction. 
 
-**Convergence results (S=K=100, T=1y, r=5%, σ=20%, BS exact = £10.451):**
+**Results:** For S=K=100, T=1y, r=5%, σ=20%, BS exact = £10.451
 
 | Paths | MC Price | Abs Error | 95% CI width |
 |---|---|---|---|
@@ -148,68 +147,61 @@ The right panel shows the a comaprison. BS with a fixed 25% vol misprices OTM op
 
 ---
 
-### 5 — American options 
+### 5. American options 
 
-A European option is exercised only at maturity. An American option can be exercised at any point up to maturity. which adds an optimal stopping problem on top of the pricing problem.
+A European option is exercised only at maturity. An American option can be exercised at any point up to maturity. Here we get an added optimal stopping problem on top of the pricing problem.
 
-At each time step:
+At each time step
 
-```
-V_t = max(intrinsic value, continuation value)
-     = max(K − S_t,  E^Q[e^{−r·dt}·V_{t+dt} | S_t])
-```
+$$V_t = max(intrinsic value, continuation value)$$
+i.e,
+$$V_t = max(K − S_t,  E^Q[e^{−r·dt}·V_{t+dt} | S_t])$$
 
-The continuation value — the expected discounted future payoff if you wait — is not available in closed form. Longstaff-Schwartz approximates it by regressing discounted future payoffs on polynomial basis functions of S_t (working backwards in time from expiry):
+In order to calculate the continuation value we need the Longstaff Schwartz algorithm to approximate it by regressing discounted future payoffs on polynomial basis functions of $S_t$. We work backwards in time from expiry to approx
 
-```
-C(S_t) ≈ β₀ + β₁S_t + β₂S_t²
-```
+$$C(S_t) ≈ β₀ + β₁S_t + β₂S_t²$$
 
-This turns an optimal stopping problem into a sequence of regressions.
+So this turns our optimal stopping problem into a bunch of regressions which are easier.
 
-**Results (S=K=100, T=1y, r=5%, σ=20%, 50,000 paths):**
+**Results**: For S=K=100, T=1y, r=5%, σ=20%, 50,000 paths:
 
 | | Price |
 |---|---|
-| European put (BS closed form) | £5.5735 |
+| European put (BSCF) | £5.5735 |
 | American put (LSMC) | £6.0513 |
-| **Early exercise premium** | **£0.4778** |
+| Early exercise premium | £0.4778 |
 
-The American put is worth £0.48 more than the European — the value of the right to exercise early. This premium exists because for deep-in-the-money puts it can be rational to exercise immediately rather than wait and lose time value.
+The American put is worth £0.48 more than the European which is what we call the value of the right to exercise early. This premium exists because for deep-in-the-money puts it can be better to exercise immediately rather than wait and succumb to time decay.
 
 ![American option](american_option.png)
 
 ---
 
-### 6 — Heston stochastic volatility
+### 6. Heston stochastic volatility
 
-Black-Scholes assumes constant volatility. Heston (1993) lets variance itself follow a mean-reverting process:
+As said before BS assumes constant volatility. Heston gave a model where variance too is an OU process:
 
-```
-dS = r·S·dt + √V·S·dW₁
-dV = κ(θ − V)dt + ξ√V·dW₂
-Corr(dW₁, dW₂) = ρ
-```
+$$dS = r·S·dt + √V·S·dW₁$$
+$$dV = κ(θ − V)dt + ξ√V·dW₂$$
+$$Corr(dW₁, dW₂) = ρ$$
 
-where κ is the speed of mean reversion, θ is the long-run variance, ξ is the vol-of-vol, and ρ is the correlation between price and variance shocks (typically negative — stocks fall as vol rises).
+where κ is the speed of mean reversion, θ is the long run variance, ξ is the volatility of volatility and ρ is the correlation between price and variance shocks (negative because stocks fall as volatility rises).
 
-This captures two things BS cannot: volatility clustering (periods of high vol tend to persist) and the leverage effect (negative ρ creates skew in the return distribution).
-
-The Heston model is implemented via Euler-Maruyama discretisation of the joint (S,V) system, with reflection to keep V non-negative (since variance must stay positive).
+The Heston model is implemented via Euler-Maruyama discretisation of the joint (S,V) system. Since variance must stay positive, V is always positive.
 
 ![Heston](heston.png)
 
-Heston paths show the characteristic bursts of volatility that BS paths lack. The fatter tails are visible — the distribution of terminal prices is wider and more skewed than log-normal.
+Heston paths show bursts of volatility that BS paths lack. The fatter tails are evidently visible.
 
 ---
 
-### 7 — Neural network option pricer
+### 7. Neural network for option pricing
 
-The question I wanted to answer here was: can a neural network learn the Black-Scholes pricing function from data, without ever seeing the formula? Yes — and understanding why this works (and where it fails) is the useful part.
+I wanted to figure out how an NN can learn BS pricing from data, without ever looking at the formula. I have the following setup:
 
-**Dataset:** 20,000 random (S, K, T, r, σ) combinations, each labelled with the exact BS call price. Split 80/20 train/test.
+**Dataset:** 20,000 random (S, K, T, r, σ) combinations, each labelled with the exact BS call price. Split 80/20 into train/test.
 
-**Inputs:** log-moneyness log(S/K), T, r, σ, and S/K ratio. Target is normalised by S (option value is homogeneous degree 1 in S and K, so dividing by S removes one degree of freedom and helps the network generalise across price scales).
+**Inputs:** log(S/K), T, r, σ, and S/K ratio. Target is normalised by S.
 
 **Architecture:** 3-layer feedforward network, 64 hidden units per layer, SiLU activations, ReLU output (prices cannot be negative). Trained with Adam, learning rate halved every 500 epochs, 2000 epochs total.
 
@@ -222,9 +214,7 @@ The question I wanted to answer here was: can a neural network learn the Black-S
 | 1000 | 0.000389 | 0.000386 |
 | 1500 | 0.000310 | 0.000305 |
 
-No overfitting — train and test loss track together throughout.
-
-**Test set performance (4,000 unseen contracts):**
+**Test set performance:** 4,000 unseen contracts
 
 | Metric | Value |
 |---|---|
@@ -232,29 +222,31 @@ No overfitting — train and test loss track together throughout.
 | Median Absolute Error | £0.810 |
 | Mean Relative Error | 27.2% |
 | Max Absolute Error | £10.434 |
-| **R² score** | **0.9883** |
+| R² score | 0.9883 |
 
-R² of 0.988 means the network explains 98.8% of variance in option prices across all strikes, maturities, and vols in the test set. The high mean relative error (27%) is driven by deep OTM options with tiny prices — a £0.10 error on a £0.40 option is 25% but economically small. The median absolute error of £0.81 is more representative.
-
-The large max error (£10.43) occurs on long-dated, high-volatility options where prices are large and the network has less training coverage. This is a known limitation of uniform random sampling — the tails of the input distribution are sparse.
+- R² of 0.988 means the network explains 98.8% of variance in option prices across all strikes, maturities and vols in the test set. 
+- The high mean relative error (27%) is caused by deep OTM options with small prices
+- The median absolute error of £0.81 is best metric
+- The max absolute error of £10.43 occurs on long dates and high volatility options where prices is large but network has less trainingn coverage so it underestimates it. This happens because of uniform random sample because of which input distributions are sparse.
 
 ![Neural network](nn_bs.png)
 
-The left panel shows the true-vs-predicted scatter clustering tightly around the diagonal. The middle panel shows the error distribution is roughly symmetric and centred at zero — no systematic bias. The right panel shows the loss curve converging cleanly.
+The left panel shows the true vs predicted scatter clustering tightly around the diagonal. The middle panel shows the error distribution is roughly symmetric and centred at zero, so no bias. The right panel shows the loss curve converging cleanly.
 
 ---
 
-## Why the Heston neural network is a known open problem
+## The Heston neural network doesn't work
 
-I attempted to apply the same neural network approach to learn the Heston pricing function (8-dimensional input: S₀, V₀, K, T, r, κ, θ, ξ, ρ). The model did not converge — loss was flat from epoch 0 and relative error was ~99.5%.
+I attempted to apply the same neural network approach to learn the Heston pricing function but the relative error was ~99.5%.
 
-The reason is not the architecture. The BS network works because the pricing function has a clean scale-invariance: dividing the output by S normalises the target into a compact [0,1]-ish range regardless of the input parameters. Heston prices depend on V₀, κ, θ, ξ in ways that are not captured by dividing by S alone. The target distribution is much wider and harder to learn with a small dataset (3,000 samples) and short training (1,500 epochs). A working Heston NN pricer requires either a purpose-built normalisation, a much larger dataset, or a physics-informed architecture. This is a planned extension.
+The BS network performs well because its pricing function is easy to normalise, i.e, dividing the option price by the stock price (S) keeps the target values within a relatively small range. In contrast, Heston prices depend on several additional parameters $V_0, \kappa, \theta$ and $\xi$, so dividing by S alone does not properly normalise the data. As a result, the network has to learn a much more complex and widely spread target distribution.
 
+Given the relatively small dataset (3,000 samples) and limited training time (1,500 epochs), the model was unable to learn this relationship nicely. Improving performance would likely require better normalisation, a larger training dataset, or a more specialised network design. Lets see if I can return to this soon.
 
 ---
 
 ## Takeaways
 
-The thing that surprised me most in building this was how tightly everything connects. The σ²/2 in the GBM formula is the same Itô correction that appears in the BS PDE derivation. The early exercise premium for American options only exists because of time value, which is the same time decay Theta measures. Implied volatility being non-constant across strikes is the market's way of pricing tails that BS, with its Gaussian assumption, structurally cannot. And the neural network essentially compresses all of that into a set of weights without knowing any of it — which is impressive, but also tells you nothing about *why* options are priced the way they are.
+The thing that I love the most in building this was how nicely everything connects. The σ²/2 in the GBM formula is the same Itô correction that appears in the BS PDE derivation. The early exercise premium for American options only exists because of time value, which is the same time decay Theta measures. Implied volatility being nonconstant across strikes is the market's way of pricing tails that BS cannot. And the neural network essentially compresses all of that into a set of weights without knowing any of it. That was the most impressive.
 
-I learnt the mechanics from this notebook. Whether it generalises to a real derivatives desk is a completely different question.
+Learning things from this repo was really interesting and I hope some of this knowledge can be applicable at work.
