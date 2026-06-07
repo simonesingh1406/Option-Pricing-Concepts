@@ -1,4 +1,4 @@
-# Option Pricing — From Black-Scholes to Neural Networks
+# Option Pricing Concepts
 
 I had a basic idea about Option Pricing and the various models used for it, but I never got the opportunity to work in depth with real applications of the concepts. This repository is an attempt to extend my knowledge and prepare myself for a future in quant finance. It covers Black-Scholes derivation and closed form, sensitivity analysis, Greeks, Monte Carlo with variance reduction, implied volatility and the volatility smile, American options, the Heston model and a neural network pricer trained on 20,000 option contracts. Certainly there are many more applications that I can explore and so I keep returning to this repo and adding new ideas.
 
