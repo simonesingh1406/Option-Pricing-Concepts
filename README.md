@@ -23,18 +23,6 @@ Inside the notebook, there are many more comments which were important for me to
 
 ---
 
-## Numerical results
-
-| Section | Parameters | Output |
-|---|---|---|
-| Black-Scholes closed form | S=K=100, T=1y, r=5%, σ=20% | Call = £10.451, Put = £5.574 |
-| Greeks (ATM, T=1y) | Δ=0.637 · Γ=0.019 · ν=0.375 | Θ = −£0.018/day, ρ = £53.23 per 1% rate move |
-| MC convergence | n = 1K → 1M paths, antithetic variates | Error: £0.450 → £0.041 → £0.017 → **£0.006** |
-| Implied vol recovery | σ=0.2345 → price → recovered IV | Error: 2×10⁻¹⁰, exact to 8 decimal places |
-| American put vs European put | S=K=100, T=1y, r=5%, σ=20% | European = £5.574 , American = £6.051 ,Early exercise premium = £0.478 |
-| Neural network (BS) | 20,000 training contracts, 4,000 test | R² = 0.9883, MAE = £1.198, Median AE = £0.810 |
-
-
 ## Inside the notebook
 
 ### 1. Black-Scholes derivation
